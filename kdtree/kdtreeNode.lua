@@ -1,17 +1,5 @@
 local node = torch.class('KDTreeNode')
 
-function key2str (key)
-	local str = "("
-	local n = key:size(1)
-	for i = 1, n do
-		if i ~= 1 then str = str .. " " end
-		str = str .. string.format("%.3f", key[i])
-		if i ~= n then str = str .. "," end
-	end
-	str = str .. ")"
-	return str
-end
-
 function node:__init (args)
 	self.maxNum = args.maxNum or 100
 	self.split = false
@@ -88,7 +76,7 @@ function node:doSplit (splitDim, splitPoint)
 		end
 	end
 
-	self.buf = nil
+	self.buf = {{key=self.splitPoint, value=self.splitPointValue}}
 end
 
 function node:find (key)
@@ -98,9 +86,9 @@ function node:find (key)
 		end
 
 		if self:cmp(key) then
-			return self:left:find(key)
+			return self.left:find(key)
 		else
-			return self:right:find(key)
+			return self.right:find(key)
 		end
 	else
 		for i = 1, #self.buf do
@@ -109,6 +97,14 @@ function node:find (key)
 			end
 		end
 		return nil
+	end
+end
+
+function node:kNearest (key, k, ansBuf)
+	for i = 1, #self.buf do
+		local dist = math.sqrt(key:clone():csub(self.buf[i].key):pow(2):sum())
+
+		ansBuf:add(self.buf[i], dist, k)
 	end
 end
 
@@ -123,11 +119,13 @@ function node:kNearestDFS (key, k, ansBuf)
 			tmpNode = self.left
 		end
 
+		self:kNearest(key, k, ansBuf)
+
 		if #ansBuf < k or self:abs(key) < ansBuf.maxDist then
 			tmpNode:kNearestDFS(key, k, ansBuf)
 		end
 	else
-
+		self:kNearest(key, k, ansBuf)
 	end
 end
 
@@ -141,7 +139,6 @@ function node:print (path)
 	else
 		for i = 1, #self.buf do
 			print("key:" .. key2str(self.buf[i].key))
-			-- print("value:" .. key2str(self.buf[i].value))
 		end
 	end
 end

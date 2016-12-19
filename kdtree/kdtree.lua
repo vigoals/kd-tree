@@ -1,4 +1,17 @@
-require "kd-tree/kdtreeNode"
+require "kdtree/kdtreeNode"
+require "kdtree/kNearestBuf"
+
+function key2str (key)
+	local str = "("
+	local n = key:size(1)
+	for i = 1, n do
+		if i ~= 1 then str = str .. " " end
+		str = str .. string.format("%.3f", key[i])
+		if i ~= n then str = str .. "," end
+	end
+	str = str .. ")"
+	return str
+end
 
 local kdtree = torch.class('KDTree')
 
@@ -19,9 +32,9 @@ end
 
 function kdtree:kNearest (key, k)
 	assert(key:dim() == 1)
-	local ansBuf = {}
-	--kdtreeDFS(self.tree, key, k, ansBuf)
-	return ansBuf
+	local ansBuf = KNearestBuf()
+	self.tree:kNearestDFS(key, k, ansBuf)
+	return ansBuf:getData()
 end
 
 function kdtree:print ()
